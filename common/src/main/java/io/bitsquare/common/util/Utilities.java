@@ -23,21 +23,20 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.*;
+import io.bitsquare.io.LookAheadObjectInputStream;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.Cipher;
 import java.awt.*;
 import java.io.*;
-import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URLConnection;
-import java.security.Permission;
-import java.security.PermissionCollection;
+import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.*;
 
@@ -210,7 +209,7 @@ public class Utilities {
         long free = runtime.freeMemory() / 1024 / 1024;
         long total = runtime.totalMemory() / 1024 / 1024;
         long used = total - free;
-        log.info("System load (nr. threads/used memory (MB)): " + Thread.activeCount() + "/" + used);
+        log.info("System load (no. threads/used memory (MB)): " + Thread.activeCount() + "/" + used);
     }
 
     public static void copyToClipboard(String content) {
@@ -254,8 +253,8 @@ public class Utilities {
         try {
             ByteArrayInputStream byteInputStream =
                     new ByteArrayInputStream(org.bitcoinj.core.Utils.parseAsHexOrBase58(serializedHexString));
-
-            try (ObjectInputStream objectInputStream = new ObjectInputStream(byteInputStream)) {
+                    
+            try (ObjectInputStream objectInputStream = new LookAheadObjectInputStream(byteInputStream)) {
                 result = objectInputStream.readObject();
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
@@ -293,7 +292,7 @@ public class Utilities {
         ObjectInput in = null;
         Object result = null;
         try {
-            in = new ObjectInputStream(bis);
+            in = new LookAheadObjectInputStream(bis, true);
             result = in.readObject();
             if (!(result instanceof Serializable))
                 throw new RuntimeException("Object not of type Serializable");
@@ -356,8 +355,7 @@ public class Utilities {
     }
 
 
-    public static Object copy(Serializable orig) {
-        Object obj = null;
+    public static Object copy(Serializable orig) throws IOException, ClassNotFoundException {
         try {
             // Write the object out to a byte array
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -368,12 +366,13 @@ public class Utilities {
 
             // Make an input stream from the byte array and read
             // a copy of the object back in.
-            ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()));
-            obj = in.readObject();
+            ObjectInputStream in = new LookAheadObjectInputStream(new ByteArrayInputStream(bos.toByteArray()), true);
+            Object obj = in.readObject();
+            return obj;
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+            throw e;
         }
-        return obj;
     }
 
     public static String readTextFileFromServer(String url, String userAgent) throws IOException {
@@ -407,42 +406,11 @@ public class Utilities {
         }
     }
 
-    // See: https://stackoverflow.com/questions/1179672/how-to-avoid-installing-unlimited-strength-jce-policy-files-when-deploying-an
-    public static void removeCryptographyRestrictions() {
-        if (!isRestrictedCryptography()) {
-            log.debug("Cryptography restrictions removal not needed");
-            return;
-        }
-        try {
-            final Class<?> jceSecurity = Class.forName("javax.crypto.JceSecurity");
-            final Class<?> cryptoPermissions = Class.forName("javax.crypto.CryptoPermissions");
-            final Class<?> cryptoAllPermission = Class.forName("javax.crypto.CryptoAllPermission");
-
-            final Field isRestrictedField = jceSecurity.getDeclaredField("isRestricted");
-            isRestrictedField.setAccessible(true);
-            isRestrictedField.set(null, false);
-
-            final Field defaultPolicyField = jceSecurity.getDeclaredField("defaultPolicy");
-            defaultPolicyField.setAccessible(true);
-            final PermissionCollection defaultPolicy = (PermissionCollection) defaultPolicyField.get(null);
-
-            final Field perms = cryptoPermissions.getDeclaredField("perms");
-            perms.setAccessible(true);
-            ((Map<?, ?>) perms.get(defaultPolicy)).clear();
-
-            final Field instance = cryptoAllPermission.getDeclaredField("INSTANCE");
-            instance.setAccessible(true);
-            defaultPolicy.add((Permission) instance.get(null));
-
-            log.debug("Successfully removed cryptography restrictions");
-        } catch (Exception e) {
-            log.warn("Failed to remove cryptography restrictions", e);
-        }
-    }
-
-    public static boolean isRestrictedCryptography() {
-        // This simply matches the Oracle JRE, but not OpenJDK.
-        return "Java(TM) SE Runtime Environment".equals(System.getProperty("java.runtime.name"));
+    public static void checkCryptoPolicySetup() throws NoSuchAlgorithmException, LimitedKeyStrengthException {
+        if (Cipher.getMaxAllowedKeyLength("AES") > 128)
+            log.debug("Congratulations, you have unlimited key length support!");
+        else
+            throw new LimitedKeyStrengthException();
     }
 
     public static String toTruncatedString(Object message, int maxLenght) {

@@ -27,6 +27,7 @@ import io.bitsquare.btc.WalletService;
 import io.bitsquare.common.CommonOptionKeys;
 import io.bitsquare.common.UserThread;
 import io.bitsquare.common.handlers.ResultHandler;
+import io.bitsquare.common.util.LimitedKeyStrengthException;
 import io.bitsquare.common.util.Profiler;
 import io.bitsquare.common.util.Utilities;
 import io.bitsquare.filter.FilterManager;
@@ -74,6 +75,7 @@ import org.springframework.core.env.Environment;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
@@ -118,6 +120,8 @@ public class BitsquareApp extends Application {
         UserThread.setExecutor(Platform::runLater);
         UserThread.setTimerClass(UITimer.class);
 
+        shutDownHandler = this::stop;
+
         // setup UncaughtExceptionHandler
         Thread.UncaughtExceptionHandler handler = (thread, throwable) -> {
             // Might come from another thread 
@@ -136,11 +140,14 @@ public class BitsquareApp extends Application {
         Thread.setDefaultUncaughtExceptionHandler(handler);
         Thread.currentThread().setUncaughtExceptionHandler(handler);
 
-        if (Utilities.isRestrictedCryptography())
-            Utilities.removeCryptographyRestrictions();
+        try {
+            Utilities.checkCryptoPolicySetup();
+        } catch (NoSuchAlgorithmException | LimitedKeyStrengthException e) {
+            e.printStackTrace();
+            UserThread.execute(() -> showErrorPopup(e, true));
+        }
+        
         Security.addProvider(new BouncyCastleProvider());
-
-        shutDownHandler = this::stop;
 
         try {
             // Guice
@@ -170,7 +177,7 @@ public class BitsquareApp extends Application {
                     mainView.setPersistedFilesCorrupted(corruptedDatabaseFiles);
             });*/
 
-            scene = new Scene(mainView.getRoot(), 1200, 740);
+            scene = new Scene(mainView.getRoot(), 1200, 700); //740
 
             Font.loadFont(getClass().getResource("/fonts/Verdana.ttf").toExternalForm(), 13);
             Font.loadFont(getClass().getResource("/fonts/VerdanaBold.ttf").toExternalForm(), 13);
@@ -210,11 +217,11 @@ public class BitsquareApp extends Application {
             // configure the primary stage
             primaryStage.setTitle(env.getRequiredProperty(APP_NAME_KEY));
             primaryStage.setScene(scene);
-            primaryStage.setMinWidth(1190);
+            primaryStage.setMinWidth(1000); // 1190
             primaryStage.setMinHeight(620);
 
             // on windows the title icon is also used as task bar icon in a larger size
-            // on Linux no title icon is supported but also a large task bar icon is derived form that title icon
+            // on Linux no title icon is supported but also a large task bar icon is derived from that title icon
             String iconPath;
             if (Utilities.isOSX())
                 iconPath = ImageUtil.isRetina() ? "/images/window_icon@2x.png" : "/images/window_icon.png";
@@ -233,8 +240,8 @@ public class BitsquareApp extends Application {
                 String osArchitecture = Utilities.getOSArchitecture();
                 // We don't force a shutdown as the osArchitecture might in strange cases return a wrong value.
                 // Needs at least more testing on different machines...
-                new Popup<>().warning("You have probably the wrong version installed for the architecture of your computer.\n" +
-                        "Your computers architecture is: " + osArchitecture + ".\n" +
+                new Popup<>().warning("You probably have the wrong Bitsquare version for this computer.\n" +
+                        "Your computer's architecture is: " + osArchitecture + ".\n" +
                         "The Bitsquare binary you installed is: " + Utilities.getJVMArchitecture() + ".\n" +
                         "Please shut down and re-install the correct version (" + osArchitecture + ").")
                         .show();
@@ -356,7 +363,7 @@ public class BitsquareApp extends Application {
         if (!shutDownRequested) {
             new Popup().headLine("Shut down in progress")
                     .backgroundInfo("Shutting down application can take a few seconds.\n" +
-                            "Please don't interrupt that process.")
+                            "Please don't interrupt this process.")
                     .hideCloseButton()
                     .useAnimation(false)
                     .show();

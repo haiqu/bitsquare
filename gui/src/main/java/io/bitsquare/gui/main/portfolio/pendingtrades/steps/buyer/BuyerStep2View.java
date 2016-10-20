@@ -71,7 +71,7 @@ public class BuyerStep2View extends TradeStepView {
                                 "Please transfer from your external " +
                                 CurrencyUtil.getNameByCode(trade.getOffer().getCurrencyCode()) + " wallet\n" +
                                 model.formatter.formatVolumeWithCode(trade.getTradeVolume()) + " to the BTC seller.\n\n" +
-                                "Here are the payment account details of the bitcoin seller:\n" +
+                                "Here are the trading account details of the bitcoin seller:\n" +
                                 "" + paymentAccountContractData.getPaymentDetailsForTradePopup() + ".\n\n" +
                                 "(You can copy & paste the values from the main screen after closing that popup.)";
                     else if (paymentAccountContractData != null)
@@ -80,7 +80,7 @@ public class BuyerStep2View extends TradeStepView {
                                     "(You can wait for more confirmations if you want - 6 confirmations are considered as very secure.)\n\n" +
                                     "Please go to a bank and pay " +
                                     model.formatter.formatVolumeWithCode(trade.getTradeVolume()) + " to the BTC seller.\n\n" +
-                                    "Here are the payment account details of the BTC seller:\n" +
+                                    "Here are the trading account details of the BTC seller:\n" +
                                     "" + paymentAccountContractData.getPaymentDetailsForTradePopup() + ".\n" +
                                     "(You can copy & paste the values from the main screen after closing that popup.)\n\n" +
                                     "Please don't forget to add the trade ID \"" + trade.getShortId() +
@@ -96,7 +96,7 @@ public class BuyerStep2View extends TradeStepView {
                                     "(You can wait for more confirmations if you want - 6 confirmations are considered as very secure.)\n\n" +
                                     "Please send " +
                                     model.formatter.formatVolumeWithCode(trade.getTradeVolume()) + " by \"US Postal Money Order\" to the BTC seller.\n\n" +
-                                    "Here are the payment account details of the BTC seller:\n" +
+                                    "Here are the trading account details of the BTC seller:\n" +
                                     "" + paymentAccountContractData.getPaymentDetailsForTradePopup() + ".\n" +
                                     "(You can copy & paste the values from the main screen after closing that popup.)\n\n" +
                                     "Please don't forget to add the trade ID \"" + trade.getShortId() +
@@ -108,7 +108,7 @@ public class BuyerStep2View extends TradeStepView {
                                     "(You can wait for more confirmations if you want - 6 confirmations are considered as very secure.)\n\n" +
                                     "Please go to your online banking web page and pay " +
                                     model.formatter.formatVolumeWithCode(trade.getTradeVolume()) + " to the BTC seller.\n\n" +
-                                    "Here are the payment account details of the BTC seller:\n" +
+                                    "Here are the trading account details of the BTC seller:\n" +
                                     "" + paymentAccountContractData.getPaymentDetailsForTradePopup() + ".\n" +
                                     "(You can copy & paste the values from the main screen after closing that popup.)\n\n" +
                                     "Please don't forget to add the trade ID \"" + trade.getShortId() +
@@ -192,6 +192,12 @@ public class BuyerStep2View extends TradeStepView {
                 break;
             case PaymentMethod.CLEAR_X_CHANGE_ID:
                 gridRow = ClearXchangeForm.addFormForBuyer(gridPane, gridRow, paymentAccountContractData);
+                break;
+            case PaymentMethod.CHASE_QUICK_PAY_ID:
+                gridRow = ChaseQuickPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountContractData);
+                break;
+            case PaymentMethod.INTERAC_E_TRANSFER_ID:
+                gridRow = InteracETransferForm.addFormForBuyer(gridPane, gridRow, paymentAccountContractData);
                 break;
             case PaymentMethod.US_POSTAL_MONEY_ORDER_ID:
                 gridRow = USPostalMoneyOrderForm.addFormForBuyer(gridPane, gridRow, paymentAccountContractData);

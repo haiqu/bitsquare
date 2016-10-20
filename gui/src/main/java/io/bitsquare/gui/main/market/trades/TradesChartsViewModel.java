@@ -61,11 +61,14 @@ class TradesChartsViewModel extends ActivatableViewModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public enum TickUnit {
+        YEAR,
         MONTH,
         WEEK,
         DAY,
         HOUR,
         MINUTE_10,
+        // TODO Can be removed after version 4.9.7
+        // Not used anymore but leave it as it might be used in preferences and could cause an exception if not there. 
         MINUTE
     }
 
@@ -240,10 +243,11 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
         // Get all entries for the defined time interval
         Map<Long, Set<TradeStatistics>> itemsPerInterval = new HashMap<>();
+        final long dateAsTime = new Date().getTime();
         tradeStatisticsByCurrency.stream().forEach(e -> {
             Set<TradeStatistics> set;
             final long time = getTickFromTime(e.tradeDate, tickUnit);
-            final long now = getTickFromTime(new Date().getTime(), tickUnit);
+            final long now = getTickFromTime(dateAsTime, tickUnit);
             long index = maxTicks - (now - time);
             if (itemsPerInterval.containsKey(index)) {
                 set = itemsPerInterval.get(index);
@@ -278,6 +282,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
         long low = 0;
         long accumulatedVolume = 0;
         long accumulatedAmount = 0;
+        long numTrades = set.size();
 
         for (TradeStatistics item : set) {
             long tradePriceAsLong = item.tradePrice;
@@ -303,17 +308,19 @@ class TradesChartsViewModel extends ActivatableViewModel {
             close = list.get(list.size() - 1).tradePrice;
         }
         boolean isBullish = close > open;
-        final Date date = new Date(getTimeFromTickIndex(tick));
+        final Date dateFrom = new Date(getTimeFromTickIndex(tick));
+        final Date dateTo = new Date(getTimeFromTickIndex(tick + 1));
         String dateString = tickUnit.ordinal() > TickUnit.DAY.ordinal() ?
-                formatter.formatDateTime(date) :
-                formatter.formatDate(date);
+                formatter.formatDateTimeSpan(dateFrom, dateTo) :
+                formatter.formatDate(dateFrom) + " - " + formatter.formatDate(dateTo);
+
         if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
             return new CandleData(tick, getInvertedPrice(open), getInvertedPrice(close), getInvertedPrice(high),
                     getInvertedPrice(low), getInvertedPrice(averagePrice), accumulatedAmount, accumulatedVolume,
-                    isBullish, dateString);
+                    numTrades, isBullish, dateString);
         } else {
             return new CandleData(tick, open, close, high, low, averagePrice, accumulatedAmount, accumulatedVolume,
-                    isBullish, dateString);
+                    numTrades, isBullish, dateString);
         }
     }
 
@@ -324,6 +331,8 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     long getTickFromTime(long tradeDateAsTime, TickUnit tickUnit) {
         switch (tickUnit) {
+            case YEAR:
+                return TimeUnit.MILLISECONDS.toDays(tradeDateAsTime) / 365;
             case MONTH:
                 return TimeUnit.MILLISECONDS.toDays(tradeDateAsTime) / 31;
             case WEEK:
@@ -343,6 +352,8 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     long getTimeFromTick(long tick, TickUnit tickUnit) {
         switch (tickUnit) {
+            case YEAR:
+                return TimeUnit.DAYS.toMillis(tick) * 365;
             case MONTH:
                 return TimeUnit.DAYS.toMillis(tick) * 31;
             case WEEK:

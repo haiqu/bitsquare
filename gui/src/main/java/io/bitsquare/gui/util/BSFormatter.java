@@ -295,7 +295,7 @@ public class BSFormatter {
     public String formatAmountWithMinAmount(Offer offer) {
         return formatCoin(offer.getMinAmount()) + " - " + formatCoin(offer.getAmount());
     }
-    
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Price
@@ -374,6 +374,16 @@ public class BSFormatter {
             DateFormat dateFormatter = DateFormat.getDateInstance(DateFormat.DEFAULT, locale);
             DateFormat timeFormatter = DateFormat.getTimeInstance(DateFormat.DEFAULT, locale);
             return dateFormatter.format(date) + " " + timeFormatter.format(date);
+        } else {
+            return "";
+        }
+    }
+
+    public String formatDateTimeSpan(Date dateFrom, Date dateTo) {
+        if (dateFrom != null && dateTo != null) {
+            DateFormat dateFormatter = DateFormat.getDateInstance(DateFormat.DEFAULT, locale);
+            DateFormat timeFormatter = DateFormat.getTimeInstance(DateFormat.DEFAULT, locale);
+            return dateFormatter.format(dateFrom) + " " + timeFormatter.format(dateFrom) + " - " + timeFormatter.format(dateTo);
         } else {
             return "";
         }
@@ -557,11 +567,11 @@ public class BSFormatter {
 
     public String getOfferDirectionForCreateOffer(Offer.Direction direction, String currencyCode) {
         if (CurrencyUtil.isFiatCurrency(currencyCode))
-            return direction == Offer.Direction.BUY ? "You are creating an offer for buying BTC" :
-                    "You are creating an offer for selling BTC";
+            return direction == Offer.Direction.BUY ? "You are creating an offer to buy BTC" :
+                    "You are creating an offer to sell BTC";
         else
-            return direction == Offer.Direction.SELL ? "You are creating an offer for buying " + currencyCode + " (selling BTC)" :
-                    "You are creating an offer for selling " + currencyCode + " (buying BTC)";
+            return direction == Offer.Direction.SELL ? "You are creating an offer to buy " + currencyCode + " (selling BTC)" :
+                    "You are creating an offer to sell " + currencyCode + " (buying BTC)";
     }
 
     public String getRole(boolean isBuyerOffererAndSellerTaker, boolean isOfferer, String currencyCode) {

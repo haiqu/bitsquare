@@ -95,7 +95,7 @@ public abstract class BitsquareExecutable {
                 .withRequiredArg();
         parser.accepts(NetworkOptionKeys.USE_TOR_FOR_HTTP, description("If set to true all http traffic (expect Poloniex) is routed over tor (socks 5 proxy)", ""))
                 .withRequiredArg();
-        
+
         parser.accepts(CoreOptionKeys.USER_DATA_DIR_KEY, description("User data directory", DEFAULT_USER_DATA_DIR))
                 .withRequiredArg();
         parser.accepts(CoreOptionKeys.APP_NAME_KEY, description("Application name", DEFAULT_APP_NAME))
@@ -105,7 +105,7 @@ public abstract class BitsquareExecutable {
         parser.accepts(CoreOptionKeys.APP_DATA_DIR_KEY, description("Application data directory", DEFAULT_APP_DATA_DIR))
                 .withRequiredArg();
         parser.accepts(CoreOptionKeys.IGNORE_DEV_MSG_KEY, description("If set to true all signed messages from Bitsquare developers are ignored " +
-                "(Global alert, Version update alert, Filters for offers, nodes or payment account data)", false))
+                "(Global alert, Version update alert, Filters for offers, nodes or trading account data)", false))
                 .withRequiredArg()
                 .ofType(boolean.class);
         parser.accepts(CoreOptionKeys.DUMP_STATISTICS, description("If set to true the trade statistics are stored as json file in the data dir.", false))
