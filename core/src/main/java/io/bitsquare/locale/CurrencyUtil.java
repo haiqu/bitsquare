@@ -101,6 +101,7 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("CMT", "Comet"));
         result.add(new CryptoCurrency("XCP", "Counterparty"));
         result.add(new CryptoCurrency("CRBIT", "Creditbit"));
+        result.add(new CryptoCurrency("CRW", "Crown"));
         result.add(new CryptoCurrency("CBX", "Crypto Bullion"));
         result.add(new CryptoCurrency("DAO", "DAO", true));
         result.add(new CryptoCurrency("DNET", "DarkNet"));
@@ -152,6 +153,7 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("OK", "OKCash"));
         result.add(new CryptoCurrency("OMNI", "Omni"));
         result.add(new CryptoCurrency("OPAL", "Opal"));
+        result.add(new CryptoCurrency("PASC", "Pascal Coin"));
         result.add(new CryptoCurrency("PPC", "Peercoin"));
         result.add(new CryptoCurrency("PINK", "Pinkcoin"));
         result.add(new CryptoCurrency("XPTX", "PlatinumBar"));
@@ -160,6 +162,7 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("POT", "PotCoin"));
         result.add(new CryptoCurrency("XPM", "Primecoin"));
         result.add(new CryptoCurrency("RADS", "Radium"));
+        result.add(new CryptoCurrency("REALEST", "RealEst. Coin"));
         result.add(new CryptoCurrency("RDD", "ReddCoin"));
         result.add(new CryptoCurrency("XRP", "Ripple"));
         result.add(new CryptoCurrency("STEEM", "STEEM"));
@@ -168,6 +171,7 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("SC", "Siacoin"));
         result.add(new CryptoCurrency("SF", "Siafund"));
         result.add(new CryptoCurrency("SIB", "Sibcoin"));
+        result.add(new CryptoCurrency("SMLY", "Smileycoin"));
         result.add(new CryptoCurrency("SLR", "SolarCoin"));
         result.add(new CryptoCurrency("STEEMUSD", "Steem Dollars", true));
         result.add(new CryptoCurrency("XLM", "Stellar Lumens"));
@@ -180,17 +184,15 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("UNO", "Unobtanium"));
         result.add(new CryptoCurrency("VCN", "VCoin"));
         result.add(new CryptoCurrency("VPN", "VPNCoin"));
-        result.add(new CryptoCurrency("XVC", "Vcash"));
         result.add(new CryptoCurrency("XVG", "Verge"));
         result.add(new CryptoCurrency("VRC", "VeriCoin"));
         result.add(new CryptoCurrency("WDC", "Worldcoin"));
-        result.add(new CryptoCurrency("VRC", "VeriCoin"));
         result.add(new CryptoCurrency("WAVES", "Waves"));
         result.add(new CryptoCurrency("YACC", "YACCoin"));
         result.add(new CryptoCurrency("YBC", "YbCoin"));
         result.add(new CryptoCurrency("ZEC", "Zcash"));
         result.add(new CryptoCurrency("XZC", "Zcoin"));
-
+        
         result.sort(TradeCurrency::compareTo);
         return result;
     }
@@ -199,7 +201,6 @@ public class CurrencyUtil {
         final List<CryptoCurrency> result = new ArrayList<>();
         result.add(new CryptoCurrency("XMR", "Monero"));
         result.add(new CryptoCurrency("ZEC", "Zcash"));
-        result.add(new CryptoCurrency("XZC", "Zcoin"));
         result.add(new CryptoCurrency("SC", "Siacoin"));
         result.add(new CryptoCurrency("ETH", "Ether"));
         result.add(new CryptoCurrency("ETC", "Ether Classic"));
@@ -211,8 +212,6 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("DASH", "Dash"));
         result.add(new CryptoCurrency("NMC", "Namecoin"));
         result.add(new CryptoCurrency("NBT", "NuBits"));
-        result.add(new CryptoCurrency("BITUSD", "BitUSD", true));
-        result.add(new CryptoCurrency("STEEMUSD", "Steem Dollars", true));
         result.add(new CryptoCurrency("DOGE", "Dogecoin"));
         result.add(new CryptoCurrency("NXT", "Nxt"));
         result.add(new CryptoCurrency("BTS", "BitShares"));

@@ -17,6 +17,7 @@
 
 package io.bitsquare.user;
 
+import io.bitsquare.app.AppOptionKeys;
 import io.bitsquare.app.BitsquareEnvironment;
 import io.bitsquare.app.DevFlags;
 import io.bitsquare.app.Version;
@@ -25,9 +26,7 @@ import io.bitsquare.btc.FeePolicy;
 import io.bitsquare.common.persistance.Persistable;
 import io.bitsquare.common.util.Utilities;
 import io.bitsquare.locale.*;
-import io.bitsquare.network.NetworkOptionKeys;
 import io.bitsquare.storage.Storage;
-import io.nucleo.net.bridge.BridgeProvider;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -41,11 +40,9 @@ import org.bitcoinj.utils.MonetaryFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class Preferences implements Persistable {
     // That object is saved to disc. We need to take care of changes to not break deserialization.
@@ -119,17 +116,12 @@ public final class Preferences implements Persistable {
     private final Map<String, Boolean> dontShowAgainMap;
     private boolean tacAccepted;
     private boolean useTorForBitcoinJ = true;
-    private boolean useTorForHttpRequests = true;
+
     private boolean showOwnOffersInOfferBook = true;
     private Locale preferredLocale;
     private TradeCurrency preferredTradeCurrency;
     private long nonTradeTxFeePerKB = FeePolicy.getNonTradeFeePerKb().value;
     private double maxPriceDistanceInPercent;
-
-    // Not used anymore but need to be kept for backward compatibility
-    @Deprecated
-    private boolean useInvertedMarketPrice;
-
     private String offerBookChartScreenCurrencyCode = CurrencyUtil.getDefaultTradeCurrency().getCode();
     private String tradeChartsScreenCurrencyCode = CurrencyUtil.getDefaultTradeCurrency().getCode();
 
@@ -141,18 +133,25 @@ public final class Preferences implements Persistable {
     private boolean sortMarketCurrenciesNumerically = true;
     private boolean usePercentageBasedPrice = false;
     private Map<String, String> peerTagMap = new HashMap<>();
-    @Nullable
-    private List<String> bridgeAddresses;
+    private String bitcoinNodes = "";
+
     private List<String> ignoreTradersList = new ArrayList<>();
     private String defaultPath;
 
     // Observable wrappers
     transient private final StringProperty btcDenominationProperty = new SimpleStringProperty(btcDenomination);
     transient private final BooleanProperty useAnimationsProperty = new SimpleBooleanProperty(useAnimations);
-    transient private final BooleanProperty useTorForHttpRequestsProperty = new SimpleBooleanProperty(useTorForHttpRequests);
     transient private final ObservableList<FiatCurrency> fiatCurrenciesAsObservable = FXCollections.observableArrayList();
     transient private final ObservableList<CryptoCurrency> cryptoCurrenciesAsObservable = FXCollections.observableArrayList();
     transient private final ObservableList<TradeCurrency> tradeCurrenciesAsObservable = FXCollections.observableArrayList();
+
+    // Not used anymore but need to be kept for backward compatibility
+    @Deprecated
+    private boolean useInvertedMarketPrice;
+    @Deprecated
+    private boolean useTorForHttpRequests = true;
+    @Deprecated
+    private List<String> bridgeAddresses;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -161,8 +160,8 @@ public final class Preferences implements Persistable {
 
     @Inject
     public Preferences(Storage<Preferences> storage, BitsquareEnvironment bitsquareEnvironment,
-                       @Named(NetworkOptionKeys.USE_TOR_FOR_HTTP) String useTorForHttpFromOptions) {
-        log.debug("Preferences " + this);
+                       @Named(AppOptionKeys.BTC_NODES) String btcNodesFromOptions,
+                       @Named(AppOptionKeys.USE_TOR_FOR_BTC) String useTorFlagFromOptions) {
         INSTANCE = this;
         this.storage = storage;
         this.bitsquareEnvironment = bitsquareEnvironment;
@@ -196,10 +195,6 @@ public final class Preferences implements Persistable {
             cryptoCurrencies.sort(TradeCurrency::compareTo);
             storage.queueUpForSave();
         });
-        useTorForHttpRequestsProperty.addListener((ov) -> {
-            useTorForHttpRequests = useTorForHttpRequestsProperty.get();
-            storage.queueUpForSave();
-        });
 
         Preferences persisted = storage.initAndGetPersisted(this);
         if (persisted != null) {
@@ -227,10 +222,6 @@ public final class Preferences implements Persistable {
             preferredTradeCurrency = persisted.getPreferredTradeCurrency();
             defaultTradeCurrency = preferredTradeCurrency;
             useTorForBitcoinJ = persisted.getUseTorForBitcoinJ();
-            if (useTorForHttpFromOptions.isEmpty())
-                setUseTorForHttpRequests(persisted.useTorForHttpRequests);
-            else
-                setUseTorForHttpRequests(useTorForHttpFromOptions.toLowerCase().equals("true"));
 
             useStickyMarketPrice = persisted.getUseStickyMarketPrice();
             sortMarketCurrenciesNumerically = persisted.getSortMarketCurrenciesNumerically();
@@ -238,9 +229,10 @@ public final class Preferences implements Persistable {
             usePercentageBasedPrice = persisted.getUsePercentageBasedPrice();
             showOwnOffersInOfferBook = persisted.getShowOwnOffersInOfferBook();
             maxPriceDistanceInPercent = persisted.getMaxPriceDistanceInPercent();
-            bridgeAddresses = persisted.getBridgeAddresses();
-            if (bridgeAddresses != null && !bridgeAddresses.isEmpty())
-                BridgeProvider.setBridges(bridgeAddresses);
+
+            bitcoinNodes = persisted.getBitcoinNodes();
+            if (bitcoinNodes == null)
+                bitcoinNodes = "";
 
             try {
                 setNonTradeTxFeePerKB(persisted.getNonTradeTxFeePerKB());
@@ -283,6 +275,20 @@ public final class Preferences implements Persistable {
         cryptoCurrenciesAsObservable.addListener(this::updateTradeCurrencies);
         tradeCurrenciesAsObservable.addAll(fiatCurrencies);
         tradeCurrenciesAsObservable.addAll(cryptoCurrencies);
+
+        // Override settings with options if set
+        if (useTorFlagFromOptions != null && !useTorFlagFromOptions.isEmpty()) {
+            if (useTorFlagFromOptions.equals("false"))
+                setUseTorForBitcoinJ(false);
+            else if (useTorFlagFromOptions.equals("true"))
+                setUseTorForBitcoinJ(true);
+        }
+
+        if (btcNodesFromOptions != null && !btcNodesFromOptions.isEmpty())
+            setBitcoinNodes(btcNodesFromOptions);
+
+        if (bitcoinNodes.equals("127.0.0.1") || bitcoinNodes.equals("localhost"))
+            setUseTorForBitcoinJ(false);
     }
 
     public void dontShowAgain(String key, boolean dontShowAgain) {
@@ -429,21 +435,6 @@ public final class Preferences implements Persistable {
         storage.queueUpForSave();
     }
 
-    public void setBridgeAddresses(@Nullable List<String> bridgeAddresses) {
-        this.bridgeAddresses = bridgeAddresses;
-        storage.queueUpForSave();
-    }
-
-    public void setBridgeAddressesAsString(@Nullable String bridgeAddressesAsString) {
-        if (bridgeAddressesAsString != null && !bridgeAddressesAsString.isEmpty()) {
-            List<String> list = Arrays.asList(bridgeAddressesAsString.split("\\n"));
-            list = list.stream().map(e -> "bridge " + e).collect(Collectors.toList());
-            setBridgeAddresses(list);
-        } else {
-            setBridgeAddresses(null);
-        }
-    }
-
     public void setOfferBookChartScreenCurrencyCode(String offerBookChartScreenCurrencyCode) {
         this.offerBookChartScreenCurrencyCode = offerBookChartScreenCurrencyCode;
         storage.queueUpForSave();
@@ -479,14 +470,14 @@ public final class Preferences implements Persistable {
         storage.queueUpForSave();
     }
 
-    public void setUseTorForHttpRequests(boolean useTorForHttpRequests) {
-        useTorForHttpRequestsProperty.set(useTorForHttpRequests);
-        storage.queueUpForSave();
-    }
-
     public void setSortMarketCurrenciesNumerically(boolean sortMarketCurrenciesNumerically) {
         this.sortMarketCurrenciesNumerically = sortMarketCurrenciesNumerically;
         storage.queueUpForSave();
+    }
+
+    public void setBitcoinNodes(String bitcoinNodes) {
+        this.bitcoinNodes = bitcoinNodes;
+        storage.queueUpForSave(50);
     }
 
 
@@ -609,11 +600,6 @@ public final class Preferences implements Persistable {
         return peerTagMap;
     }
 
-    @Nullable
-    public List<String> getBridgeAddresses() {
-        return bridgeAddresses;
-    }
-
     public String getOfferBookChartScreenCurrencyCode() {
         return offerBookChartScreenCurrencyCode;
     }
@@ -642,18 +628,13 @@ public final class Preferences implements Persistable {
         return tradeStatisticsTickUnitIndex;
     }
 
-    public boolean getUseTorForHttpRequests() {
-        return useTorForHttpRequestsProperty.get();
-    }
-
-    public BooleanProperty useTorForHttpRequestsProperty() {
-        return useTorForHttpRequestsProperty;
-    }
-
     public boolean getSortMarketCurrenciesNumerically() {
         return sortMarketCurrenciesNumerically;
     }
 
+    public String getBitcoinNodes() {
+        return bitcoinNodes;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
